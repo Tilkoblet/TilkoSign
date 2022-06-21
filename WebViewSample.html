@@ -121,7 +121,7 @@
             // AES Key를 RSA Public Key로 암호화
             const rsaPublicKey  = await getPublicKey().then(function (data) {
                 // AES Secret Key 및 IV 생성
-                const aesKey    = CryptoJS.enc.Utf8.parse('1234567890123456');                  // 랜덤값 사용 가능
+                const aesKey    = CryptoJS.enc.Utf8.parse('1234567890123456');                  // 16 바이트 랜덤값 사용 가능
                 const aesIv     = CryptoJS.enc.Hex.parse("00000000000000000000000000000000");   // 고정값
 
                 const rsaPublicKey  = data.PublicKey;
