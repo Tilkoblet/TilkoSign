@@ -1,0 +1,221 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>RSA Encryption</title>
+</head>
+<body>
+	<div>
+		<label for="code">인증서 복사 코드 전송</label><br/>
+		<input type="text" id="code" value=""><br/>
+		<br/>
+	</div>
+
+	<hr/>
+
+	<div>
+		<label for="apiKey">API Key</label><br/>
+		<input type="text" id="apiKey" value="일반용 API KEY"><br/>
+		<br/>
+	</div>
+
+	<hr/>
+
+	<div>
+		<span>Body</span>
+		<br/>
+		<label for="req-BirthDate">CertPassword</label><br/>
+		<input type="password" id="req-CertPassword" value="19880101"><br/>
+		<br/>
+		<label for="req-PersonName">PersonName</label><br/>
+		<input type="text" id="req-PersonName" value="홍길동"><br/>
+		<br/>
+		<label for="req-IdentityNumber">IdentityNumber</label><br/>
+		<input type="text" id="req-IdentityNumber" value="8801011234567"><br/>
+		<br/>
+		<label for="req-PublishDate">PublishDate</label><br/>
+		<input type="text" id="req-PublishDate" value="20101231"><br/>
+		<br/>
+	</div>
+
+	<hr/>
+
+	<div>
+		<label for="certlist">인증서 목록</label><br/>
+		<ul id="certlist"></ul>
+		<br/>
+	</div>
+
+	<hr/>
+
+	<div style="margin-top:20px;">
+		<button type="button" onclick="callApi()">Call API</button><br/>
+		<br/>
+	</div>
+
+	<hr/>
+	
+	<div style="margin-top:20px;">
+		<label for="response">Response</label><br/>
+		<textarea type="text" id="response" cols="70" rows="7"></textarea><br/>
+		<br/>
+	</div>
+
+	<script src="/Resources/Scripts/jquery-3.5.1.min.js"></script>
+	<script src="/Resources/Scripts/jquery.signalR-2.4.2.min.js"></script>
+	<script src="/Resources/Scripts/crypto-js.js"></script>
+	<script src="/Resources/Scripts/jsencrypt.min.js"></script>
+	<script src="/Resources/Scripts/TilkoSignWebCertManager.min.js"></script>
+	<script>
+        function loadCertList() {
+            for (let i = 0; i < localStorage.length; i++) {
+                const certId = localStorage.key(i);
+                const cert = JSON.parse(localStorage.getItem(certId));
+
+                let elCert = '';
+                elCert += '<label>';
+                elCert += `<input type="radio" name="certs" value="${certId}"/>`;
+                elCert += cert.SubjectDN;
+                elCert += '</label>';
+                elCert += '<br/>';
+
+                $("#certlist").append(elCert);
+            }
+        }
+
+
+        // RSA 공개키(Public Key) 조회 함수
+        function getPublicKey(callback) {
+            const uri       = apiHost + "/api/Auth/GetPublicKey?APIkey=" + $("#apiKey").val();
+            const params    = {};
+
+            return $.ajax({
+                type: "GET",
+                url: uri,
+                data: params,
+                contentType: "application/json",
+                success: function (data) {
+                    console.log(data);
+                    return data.PublicKey;
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    console.error(textStatus);
+                    console.error(jqXHR);
+                }
+            });
+        }
+
+
+        async function callApi() {
+            const certId    = $("input[name='certs']:checked").val();
+            if (!certId) {
+                alert("인증서가 선택되지 않았습니다.");
+                return;
+            }
+
+            // 인증서 선택
+            const cert      = JSON.parse(localStorage.getItem(certId));
+
+            // AES Key를 RSA Public Key로 암호화
+            const rsaPublicKey  = await getPublicKey().then(function (data) {
+                // AES Secret Key 및 IV 생성
+                const aesKey    = CryptoJS.enc.Utf8.parse('1234567890123456');                  // 랜덤값 사용 가능
+                const aesIv     = CryptoJS.enc.Hex.parse("00000000000000000000000000000000");   // 고정값
+
+                const rsaPublicKey  = data.PublicKey;
+
+                const aesCipherKey  = rsaEncrypt(rsaPublicKey, aesKey, "pkcs1");
+
+                const uri       = apiHost + "/api/v1.0/Gov/AA090UserJuminCheckResApp";
+
+                const headers   = {
+                    "Content-Type"      : "application/json",
+                    "API-KEY"           : $("#apiKey").val(),
+                    "ENC-KEY"           : aesCipherKey
+                };
+
+                const params    = {
+                    "CertFile"          : aesEncryptCert(aesKey, aesIv, cert.PublicKey),
+                    "KeyFile"           : aesEncryptCert(aesKey, aesIv, cert.PrivateKey),
+                    "CertPassword"      : aesEncrypt(aesKey, aesIv, $("#req-CertPassword").val()),
+                    "PersonName"        : $("#req-PersonName").val(),
+                    "IdentityNumber"    : aesEncrypt(aesKey, aesIv, $("#req-IdentityNumber").val()),
+                    "PublishDate"       : $("#req-PublishDate").val(),
+                };
+                
+                $("#response").val("잠시만 기다려주세요.");
+
+                $.ajax({
+                    type: "POST",
+                    url: uri,
+                    headers: headers,
+                    data: JSON.stringify(params),
+                    contentType: "application/json",
+                    success: function (data) {
+                        console.log(data);
+                        $("#response").val(JSON.stringify(data));
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        console.error(textStatus);
+                        console.error(jqXHR);
+                    }
+                });
+            });
+        }
+
+
+        const hubUrl        = "https://cert.tilko.net/";
+        const apiHost       = "https://api.tilko.net/";
+
+
+        $(document).ready(function () {
+            // 인증서 로딩
+            loadCertList();
+
+            // RSA Key 생성
+            const _rsaKeyPair   = genRSAKeyPair();
+            const _publicCert   = encodeURIComponent(_rsaKeyPair.PublicKey);
+
+            var _connection     = $.hubConnection(hubUrl);
+            _connection.qs      = { "client_type": "mobilewebview", "public_cert": _publicCert };
+            var _authHub        = _connection.createHubProxy('AuthHub');
+
+            _connection.start().done(function () {
+            }).fail(function (e) {
+                console.log('Failed to connect');
+            });
+
+            _connection.error(function (error) {
+                console.log(error);
+            });
+
+            _authHub.on('ShowCode', function (param) {
+                console.log(param);
+                $("#code").val(param);
+            });
+
+            // 인증서 저장
+            _authHub.on('SaveCertificate', function (EncrytpedAesKey, EncryptedPublicKey, EncryptedPrivateKey, SubjectDN, SessionId) {
+                console.log(EncrytpedAesKey, EncryptedPublicKey, EncryptedPrivateKey, SubjectDN, SessionId);
+
+                const _privateCert  = _rsaKeyPair.PrivateKey;
+
+                const _aesKey       = rsaDecrypt(_privateCert, EncrytpedAesKey);
+
+                const _publicKey    = aesDecryptCert(_aesKey, EncryptedPublicKey);
+                const _privateKey   = aesDecryptCert(_aesKey, EncryptedPrivateKey);
+
+                const _certId       = SubjectDN.hexEncode();
+                const _tksMng       = new TilkoSignWebCertManager(_certId);
+
+                _tksMng.Add(_aesKey, _publicKey, _privateKey, SubjectDN, SessionId);
+
+                alert("인증서 저장 완료");
+            });
+        });
+    </script>
+
+</body>
+</html>
