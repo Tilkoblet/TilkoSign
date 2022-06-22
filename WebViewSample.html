@@ -70,6 +70,8 @@
     <script src="/Resources/Scripts/TilkoSignWebCertManager.min.js"></script>
     <script>
         function loadCertList() {
+            $("#certlist").html("");
+
             for (let i = 0; i < localStorage.length; i++) {
                 const certId = localStorage.key(i);
                 const cert = JSON.parse(localStorage.getItem(certId));
