@@ -188,7 +188,7 @@
             });
 
             // 인증서 저장
-            _authHub.on('SaveCertificate', function (EncrytpedAesKey, EncryptedPublicKey, EncryptedPrivateKey, SubjectDN, SessionId) {
+            _authHub.on('SaveCertificate', function (EncrytpedAesKey, EncryptedPublicKey, EncryptedPrivateKey, SubjectDN, SessionId, CertName, CertIssuer, CertPurpose, CertExpire, CertDn) {
                 console.log(EncrytpedAesKey, EncryptedPublicKey, EncryptedPrivateKey, SubjectDN, SessionId);
 
                 const _privateCert  = _rsaKeyPair.PrivateKey;
@@ -207,6 +207,11 @@
                     "PrivateKey"    : _privateKey,
                     "SubjectDN"     : SubjectDN,
                     "SessionId"     : SessionId,
+                    "CertName"      : CertName,
+                    "CertIssuer"    : CertIssuer,
+                    "CertPurpose"   : CertPurpose,
+                    "CertExpire"    : CertExpire,
+                    "CertDn"        : CertDn,
                 };
                 
                 _tksMng.Add(certObj);
