@@ -1,74 +1,74 @@
 ﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
-	<meta charset="UTF-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>웹뷰 샘플 페이지</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>웹뷰 샘플 페이지</title>
 </head>
 <body>
-	<div>
-		<label for="code">인증서 복사 코드 전송</label><br/>
-		<input type="text" id="code" value=""><br/>
-		<br/>
-	</div>
+    <div>
+        <label for="code">인증서 복사 코드 전송</label><br/>
+        <input type="text" id="code" value=""><br/>
+        <br/>
+    </div>
 
-	<hr/>
+    <hr/>
 
-	<div>
-		<label for="apiKey">API Key</label><br/>
-		<input type="text" id="apiKey" value="일반용 API KEY"><br/>
-		<br/>
-	</div>
+    <div>
+        <label for="apiKey">API Key</label><br/>
+        <input type="text" id="apiKey" value="일반용 API KEY"><br/>
+        <br/>
+    </div>
 
-	<hr/>
+    <hr/>
 
-	<div>
-		<span>Body</span>
-		<br/>
-		<label for="req-BirthDate">CertPassword</label><br/>
-		<input type="password" id="req-CertPassword" value="19880101"><br/>
-		<br/>
-		<label for="req-PersonName">PersonName</label><br/>
-		<input type="text" id="req-PersonName" value="홍길동"><br/>
-		<br/>
-		<label for="req-IdentityNumber">IdentityNumber</label><br/>
-		<input type="text" id="req-IdentityNumber" value="8801011234567"><br/>
-		<br/>
-		<label for="req-PublishDate">PublishDate</label><br/>
-		<input type="text" id="req-PublishDate" value="20101231"><br/>
-		<br/>
-	</div>
+    <div>
+        <span>Body</span>
+        <br/>
+        <label for="req-BirthDate">CertPassword</label><br/>
+        <input type="password" id="req-CertPassword" value="19880101"><br/>
+        <br/>
+        <label for="req-PersonName">PersonName</label><br/>
+        <input type="text" id="req-PersonName" value="홍길동"><br/>
+        <br/>
+        <label for="req-IdentityNumber">IdentityNumber</label><br/>
+        <input type="text" id="req-IdentityNumber" value="8801011234567"><br/>
+        <br/>
+        <label for="req-PublishDate">PublishDate</label><br/>
+        <input type="text" id="req-PublishDate" value="20101231"><br/>
+        <br/>
+    </div>
 
-	<hr/>
+    <hr/>
 
-	<div>
-		<label for="certlist">인증서 목록</label><br/>
-		<ul id="certlist"></ul>
-		<br/>
-	</div>
+    <div>
+        <label for="certlist">인증서 목록</label><br/>
+        <ul id="certlist"></ul>
+        <br/>
+    </div>
 
-	<hr/>
+    <hr/>
 
-	<div style="margin-top:20px;">
-		<button type="button" onclick="callApi()">Call API</button><br/>
-		<br/>
-	</div>
+    <div style="margin-top:20px;">
+        <button type="button" onclick="callApi()">Call API</button><br/>
+        <br/>
+    </div>
 
-	<hr/>
-	
-	<div style="margin-top:20px;">
-		<label for="response">Response</label><br/>
-		<textarea type="text" id="response" cols="70" rows="7"></textarea><br/>
-		<br/>
-	</div>
+    <hr/>
+    
+    <div style="margin-top:20px;">
+        <label for="response">Response</label><br/>
+        <textarea type="text" id="response" cols="70" rows="7"></textarea><br/>
+        <br/>
+    </div>
 
-	<script src="/Resources/Scripts/jquery-3.5.1.min.js"></script>
-	<script src="/Resources/Scripts/jquery.signalR-2.4.2.min.js"></script>
-	<script src="/Resources/Scripts/crypto-js.js"></script>
-	<script src="/Resources/Scripts/jsencrypt.min.js"></script>
-	<script src="/Resources/Scripts/TilkoSignWebCertManager.min.js"></script>
-	<script>
+    <script src="/Resources/Scripts/jquery-3.5.1.min.js"></script>
+    <script src="/Resources/Scripts/jquery.signalR-2.4.2.min.js"></script>
+    <script src="/Resources/Scripts/crypto-js.js"></script>
+    <script src="/Resources/Scripts/jsencrypt.min.js"></script>
+    <script src="/Resources/Scripts/TilkoSignWebCertManager.min.js"></script>
+    <script>
         function loadCertList() {
             for (let i = 0; i < localStorage.length; i++) {
                 const certId = localStorage.key(i);
@@ -182,15 +182,6 @@
             _connection.qs      = { "client_type": "mobilewebview", "public_cert": _publicCert };
             var _authHub        = _connection.createHubProxy('AuthHub');
 
-            _connection.start().done(function () {
-            }).fail(function (e) {
-                console.log('Failed to connect');
-            });
-
-            _connection.error(function (error) {
-                console.log(error);
-            });
-
             _authHub.on('ShowCode', function (param) {
                 console.log(param);
                 $("#code").val(param);
@@ -223,6 +214,21 @@
                 alert("인증서 저장 완료");
                 loadCertList();
             });
+
+            async function start() {
+                try {
+                    await _connection.start();
+                    console.log("SignalR Connected.");
+                } catch (err) {
+                    console.log(err);
+                }
+            };
+
+            _connection.error(function (error) {
+                console.log(error);
+            });
+
+            start();
         });
     </script>
 
