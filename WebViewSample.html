@@ -210,9 +210,18 @@
                 const _certId       = SubjectDN.hexEncode();
                 const _tksMng       = new TilkoSignWebCertManager(_certId);
 
-                _tksMng.Add(_aesKey, _publicKey, _privateKey, SubjectDN, SessionId);
+                const certObj       = {
+                    "AesKey"        : _aesKey,
+                    "PublicKey"     : _publicKey,
+                    "PrivateKey"    : _privateKey,
+                    "SubjectDN"     : SubjectDN,
+                    "SessionId"     : SessionId,
+                };
+                
+                _tksMng.Add(certObj);
 
                 alert("인증서 저장 완료");
+                loadCertList();
             });
         });
     </script>
