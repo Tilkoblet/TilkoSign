@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head><title>
@@ -11,7 +11,12 @@
 	<script src="/Resources/Scripts/jquery-3.5.1.min.js"></script>
 	<script src="/Resources/Scripts/TilkoSignWebSocket.min.js"></script>
 	<script type="text/javascript">
+		const apiKey = "일반용 API KEY";
+		const hubUrl = "https://cert.tilko.net/";
+		const apiHost = "https://api.tilko.net/";
+
 		let _tksReq	= new TilkoSignRequest("general", "ping", getCert);
+
 
 		function callScheme(api_key, hubServerUrl, bannerUrl, clientType) {
 			try {
@@ -21,7 +26,7 @@
 				_tksReq.Add("hubServerUrl=" + hubServerUrl);
 				_tksReq.Add("bannerUrl=" + bannerUrl);
                 _tksReq.Add("siteUrl=" + siteUrl);
-				_tksReq.Add("clientType=" + clientType);
+                _tksReq.Add("clientType=" + clientType);
 				
 				// TilkoSign 설치여부 확인
 				_tksReq.Send();
@@ -34,10 +39,80 @@
 				alert(e);
 			}
 		}
-		
-		function getCert(obj) {
-			console.log(obj);
+
+
+        function getCert(obj) {
+            console.log(obj);
+            callApi(obj);
 		}
+
+
+        // RSA 공개키(Public Key) 조회 함수
+        function getPublicKey(callback) {
+            const uri = apiHost + "/api/Auth/GetPublicKey?APIkey=" + apiKey;
+            const params = {};
+
+            return $.ajax({
+                type: "GET",
+                url: uri,
+                data: params,
+                contentType: "application/json",
+                success: function (data) {
+                    console.log(data);
+                    return data.PublicKey;
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    console.error(textStatus);
+                    console.error(jqXHR);
+                }
+            });
+        }
+
+
+        async function callApi(cert) {
+            // AES Key를 RSA Public Key로 암호화
+            const rsaPublicKey = await getPublicKey().then(function (data) {
+                // AES Secret Key 및 IV 생성
+                const aesKey = CryptoJS.enc.Utf8.parse('1234567890123456');                  // 16 바이트 랜덤값 사용 가능
+                const aesIv = CryptoJS.enc.Hex.parse("00000000000000000000000000000000");   // 고정값
+
+                const rsaPublicKey = data.PublicKey;
+
+                const aesCipherKey = rsaEncrypt(rsaPublicKey, aesKey, "pkcs1");
+
+                const uri = apiHost + "/api/v1.0/Gov/AA090UserJuminCheckResApp";
+
+                const headers = {
+                    "Content-Type": "application/json",
+                    "API-KEY": apiKey,
+                    "ENC-KEY": aesCipherKey
+                };
+				
+                const params = {
+                    "CertFile": aesEncryptCert(aesKey, aesIv, cert.PubKey),
+                    "KeyFile": aesEncryptCert(aesKey, aesIv, cert.PriKey),
+                    "CertPassword": aesEncrypt(aesKey, aesIv, CryptoJS.enc.Base64.parse(cert.Pwd).toString(CryptoJS.enc.Utf8)),
+                    "PersonName": "홍길동",
+                    "IdentityNumber": aesEncrypt(aesKey, aesIv, "8801011234567"),
+                    "PublishDate": "20200101",
+                };
+
+                $.ajax({
+                    type: "POST",
+                    url: uri,
+                    headers: headers,
+                    data: JSON.stringify(params),
+                    contentType: "application/json",
+                    success: function (data) {
+                        console.log(data);
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        console.error(textStatus);
+                        console.error(jqXHR);
+                    }
+                });
+            });
+        }
     </script>
 </head>
 <body>
@@ -72,7 +147,7 @@
 					</h2>
 					<div class="guide">
 						<div class="inner">
-							<a href="javascript:callScheme('틸코사인용 API KEY', 'https://cert.tilko.net/', '', 'Pc/Mobile/WebView');">
+							<a href="javascript:callScheme('틸코사인용 API KEY', 'https://cert.tilko.net/', '', 'Pc/Mobile/MobileWebView');">
 								<h3 class="guide-title">공동인증서 복사하기</h3>
 							</a>
 							<div class="step-list">
