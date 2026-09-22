@@ -11,29 +11,40 @@
 	<script src="/Resources/Scripts/jquery-3.5.1.min.js"></script>
 	<script src="/Resources/Scripts/TilkoSignWebSocket.min.js"></script>
 	<script type="text/javascript">
-		let _tksReq	= new TilkoSignRequest("general", "ping", getCert);
 
 		function callScheme(api_key, hubServerUrl, bannerUrl, clientType) {
-			try {
-				var siteUrl = window.location.host;
+            try {
+                var siteUrl = window.location.host;
 
-				_tksReq.Add("apiKey=" + api_key);
-				_tksReq.Add("hubServerUrl=" + hubServerUrl);
-				_tksReq.Add("bannerUrl=" + bannerUrl);
+                // 전역 _tksReq에 Add()를 계속 호출하면 버튼을 여러 번 누를 때
+                // 파라미터가 누적되므로 호출할 때마다 새 객체를 생성
+                let _tksReq = new TilkoSignRequest("general", "ping", getCert);
+
+                _tksReq.Add("apiKey=" + api_key);
+                _tksReq.Add("hubServerUrl=" + hubServerUrl);
+                _tksReq.Add("bannerUrl=" + bannerUrl);
                 _tksReq.Add("siteUrl=" + siteUrl);
-				_tksReq.Add("clientType=" + clientType);
-				
-				// TilkoSign 설치여부 확인
-				_tksReq.Send();
+                _tksReq.Add("clientType=" + clientType);
 
-				var _scheme		= api_key + "|" + hubServerUrl + "|" + bannerUrl + "|" + siteUrl + "|" + clientType;
-				_scheme			= _scheme.hexEncode();
-				location.href	= "tilkosign://" + _scheme;
-			}
-			catch (e) {
-				alert(e);
-			}
-		}
+                var _scheme = api_key + "|" + hubServerUrl + "|" + bannerUrl + "|" + siteUrl + "|" + clientType;
+
+                _scheme = _scheme.hexEncode();
+         
+                location.href = "tilkosign://" + _scheme;
+      
+                setTimeout(function () {
+                    try {
+                        _tksReq.Send();
+                    }
+                    catch (e) {
+                        alert(e);
+                    }
+                }, 3000);
+            }
+            catch (e) {
+                alert(e);
+            }
+        }
 		
 		function getCert(obj) {
 			console.log(obj);
